@@ -1,3 +1,4 @@
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -16,22 +17,55 @@ spec:
         app: mongodb
     spec:
       containers:
-      - name: chatapp-mongodb
-        image: mongo:latest
-        ports:
-        - containerPort: 27017
-        env:
-        - name: MONGO_INITDB_ROOT_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: chatapp-secret
-              key: MONGO_INITDB_ROOT_USERNAME
-        - name: MONGO_INITDB_ROOT_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: chatapp-secret
-              key: MONGO_INITDB_ROOT_PASSWORD
+        - name: chatapp-mongodb
+          image: mongo:latest
+          ports:
+            - containerPort: 27017
+
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: chatapp-secret
+                  key: MONGO_INITDB_ROOT_USERNAME
+
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: chatapp-secret
+                  key: MONGO_INITDB_ROOT_PASSWORD
+
+          startupProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - 'mongosh --quiet --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand({ping: 1}).ok" | grep -q 1'
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
+
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - 'mongosh --quiet --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand({ping: 1}).ok" | grep -q 1'
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - 'mongosh --quiet --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand({ping: 1}).ok" | grep -q 1'
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+
       volumes:
-      - name: mongodb-pvc
-        persistentVolumeClaim:
-          claimName: mongodb-pvc
+        - name: mongodb-pvc
+          persistentVolumeClaim:
+            claimName: mongodb-pvc
