@@ -3,41 +3,78 @@ kind: Deployment
 metadata:
   name: backend-deployment
   namespace: chat-app
+
 spec:
   replicas: 1
+
   selector:
     matchLabels:
       app: backend
+
   template:
     metadata:
-      name: backend-pod
       labels:
         app: backend
+
     spec:
       containers:
-      - name: chatapp-backend
-        image: sourabhshedge/chatapp-backend:latest
-        ports:
-        - containerPort: 5001
-        env:
-        - name: NODE_ENV
-          value: production
-        - name: PORT
-          value: "5001"
-        - name: MONGO_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: chatapp-secret
-              key: MONGO_INITDB_ROOT_USERNAME
-        - name: MONGO_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: chatapp-secret
-              key: MONGO_INITDB_ROOT_PASSWORD
-        - name: MONGODB_URI
-          value: "mongodb://$(MONGO_USERNAME):$(MONGO_PASSWORD)@mongodb:27017/chatapp?authSource=admin"
-        - name: JWT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: chatapp-secret
-              key: JWT_SECRET
+        - name: chatapp-backend
+          image: sourabhshedge/chatapp-backend:v1.0.0
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: http
+              containerPort: 5001
+              protocol: TCP
+
+          env:
+            - name: NODE_ENV
+              value: "production"
+
+            - name: PORT
+              value: "5001"
+
+            - name: MONGO_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: chatapp-secret
+                  key: MONGO_INITDB_ROOT_USERNAME
+
+            - name: MONGO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: chatapp-secret
+                  key: MONGO_INITDB_ROOT_PASSWORD
+
+            - name: MONGODB_URI
+              value: "mongodb://$(MONGO_USERNAME):$(MONGO_PASSWORD)@mongodb:27017/chatapp?authSource=admin"
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: chatapp-secret
+                  key: JWT_SECRET
+
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
