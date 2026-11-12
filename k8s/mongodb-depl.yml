@@ -1,13 +1,14 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
-  name: mongodb-deployment
+  name: mongodb-statefulset
   namespace: chat-app
   labels:
     app: mongodb
 
 spec:
   replicas: 1
+  serviceName: mongodb-service
 
   selector:
     matchLabels:
@@ -58,9 +59,10 @@ spec:
                 - sh
                 - -c
                 - 'mongosh --quiet --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand({ping: 1}).ok" | grep -q 1'
-            periodSeconds: 5
-            timeoutSeconds: 3
+            periodSeconds: 10
+            timeoutSeconds: 10
             failureThreshold: 30
+
 
           readinessProbe:
             exec:
