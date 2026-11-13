@@ -8,7 +8,7 @@ metadata:
 
 spec:
   replicas: 1
-  serviceName: mongodb-service
+  serviceName: mongodb
 
   selector:
     matchLabels:

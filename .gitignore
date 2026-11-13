@@ -23,3 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
+# secret files
+
+k8s/secrets.yml
