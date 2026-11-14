@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: chatapp-backend
-          image: sourabhshedge/chatapp-backend:v1.0.0
+          image: sourabhshedge/chatapp-backend:latest
           imagePullPolicy: IfNotPresent
 
           ports:

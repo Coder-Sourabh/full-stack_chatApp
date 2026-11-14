@@ -1,3 +1,4 @@
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -54,37 +55,48 @@ spec:
               mountPath: /data/db
 
           startupProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - 'mongosh --quiet --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand({ping: 1}).ok" | grep -q 1'
+            tcpSocket:
+              port: mongodb
             periodSeconds: 10
-            timeoutSeconds: 10
             failureThreshold: 30
 
-
           readinessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - 'mongosh --quiet --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand({ping: 1}).ok" | grep -q 1'
+            tcpSocket:
+              port: mongodb
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
 
           livenessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - 'mongosh --quiet --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand({ping: 1}).ok" | grep -q 1'
+            tcpSocket:
+              port: mongodb
             periodSeconds: 20
             timeoutSeconds: 5
             failureThreshold: 3
 
-      volumes:
-        - name: mongodb-pvc
-          persistentVolumeClaim:
-            claimName: mongodb-pvc
+  # Persistent storage configuration
+  volumeClaimTemplates:
+    - metadata:
+        name: mongodb-pvc
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 5Gi
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: chat-app
+spec:
+  clusterIP: None
+  selector:
+    app: mongodb
+  ports:
+    - port: 27017
+      targetPort: 27017
+      name: mongodb
