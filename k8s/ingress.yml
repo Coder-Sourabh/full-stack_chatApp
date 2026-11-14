@@ -5,20 +5,14 @@ metadata:
   namespace: chat-app
   labels:
     name: chatapp-ingress
-  # annotations:
-  #   nginx.ingress.kubernetes.io/rewrite-target: /
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
 spec:
+  ingressClassName: nginx
   rules:
-  - host: localhost
-    http:
+  - http:
       paths:
-      - pathType: Prefix
-        path: "/"
-        backend:
-          service:
-            name: frontend
-            port: 
-              number: 80
       - pathType: Prefix
         path: "/api"
         backend:
@@ -26,3 +20,17 @@ spec:
             name: backend
             port:
               number: 5001
+      - pathType: Prefix
+        path: "/socket.io"
+        backend:
+          service:
+            name: backend
+            port:
+              number: 5001
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: frontend
+            port:
+              number: 80

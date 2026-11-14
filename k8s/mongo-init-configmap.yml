@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongo-init
+  namespace: chat-app
+data:
+  01-create-app-user.js: |
+    // Runs once, only when /data/db is empty. Executed as root by the mongo image entrypoint.
+    const dbName = process.env.MONGO_APP_DB;
+    const appDb = db.getSiblingDB(dbName);
+    appDb.createUser({
+      user: process.env.MONGO_APP_USERNAME,
+      pwd: process.env.MONGO_APP_PASSWORD,
+      roles: [{ role: "readWrite", db: dbName }]
+    });

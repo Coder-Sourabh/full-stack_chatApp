@@ -19,8 +19,8 @@ spec:
     spec:
       containers:
         - name: chatapp-backend
-          image: sourabhshedge/chatapp-backend:latest
-          imagePullPolicy: IfNotPresent
+          image: sourabhshedge/chatapp-backend:latest   # TODO: pin a version tag
+          imagePullPolicy: Always
 
           ports:
             - name: http
@@ -34,20 +34,27 @@ spec:
             - name: PORT
               value: "5001"
 
+            # App user (NOT root). Variables must be defined before MONGODB_URI uses them.
+            - name: MONGO_DB
+              valueFrom:
+                secretKeyRef:
+                  name: chatapp-secret
+                  key: MONGO_APP_DB
+
             - name: MONGO_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: chatapp-secret
-                  key: MONGO_INITDB_ROOT_USERNAME
+                  key: MONGO_APP_USERNAME
 
             - name: MONGO_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: chatapp-secret
-                  key: MONGO_INITDB_ROOT_PASSWORD
+                  key: MONGO_APP_PASSWORD
 
             - name: MONGODB_URI
-              value: "mongodb://$(MONGO_USERNAME):$(MONGO_PASSWORD)@mongodb:27017/"
+              value: "mongodb://$(MONGO_USERNAME):$(MONGO_PASSWORD)@mongodb-statefulset-0.mongodb.chat-app.svc.cluster.local:27017/$(MONGO_DB)?authSource=$(MONGO_DB)"
 
             - name: JWT_SECRET
               valueFrom:
@@ -63,17 +70,23 @@ spec:
               memory: "512Mi"
               cpu: "500m"
 
+          # TCP probes: they only need the server to be listening, so no /ready or /health route is required.
+          # Switch back to httpGet once those routes exist in the backend code.
+          startupProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30
+
           readinessProbe:
-            httpGet:
-              path: /ready
+            tcpSocket:
               port: http
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 3
 
           livenessProbe:
-            httpGet:
-              path: /health
+            tcpSocket:
               port: http
             periodSeconds: 20
             timeoutSeconds: 5

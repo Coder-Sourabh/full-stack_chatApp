@@ -1,4 +1,3 @@
-
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -27,10 +26,10 @@ spec:
 
           resources:
             requests:
-              memory: "256Mi"
+              memory: "512Mi"
               cpu: "250m"
             limits:
-              memory: "512Mi"
+              memory: "1Gi"
               cpu: "500m"
 
           ports:
@@ -38,21 +37,41 @@ spec:
               name: mongodb
 
           env:
+            # Root user (created by the image on first start)
             - name: MONGO_INITDB_ROOT_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: chatapp-secret
                   key: MONGO_INITDB_ROOT_USERNAME
-
             - name: MONGO_INITDB_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: chatapp-secret
                   key: MONGO_INITDB_ROOT_PASSWORD
 
+            # App user values, read by the init script via process.env
+            - name: MONGO_APP_DB
+              valueFrom:
+                secretKeyRef:
+                  name: chatapp-secret
+                  key: MONGO_APP_DB
+            - name: MONGO_APP_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: chatapp-secret
+                  key: MONGO_APP_USERNAME
+            - name: MONGO_APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: chatapp-secret
+                  key: MONGO_APP_PASSWORD
+
           volumeMounts:
             - name: mongodb-pvc
               mountPath: /data/db
+            - name: mongo-init
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
 
           startupProbe:
             tcpSocket:
@@ -74,7 +93,11 @@ spec:
             timeoutSeconds: 5
             failureThreshold: 3
 
-  # Persistent storage configuration
+      volumes:
+        - name: mongo-init
+          configMap:
+            name: mongo-init
+
   volumeClaimTemplates:
     - metadata:
         name: mongodb-pvc
@@ -86,7 +109,6 @@ spec:
             storage: 5Gi
 
 ---
-
 apiVersion: v1
 kind: Service
 metadata:
